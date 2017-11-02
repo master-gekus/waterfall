@@ -21,6 +21,9 @@ public:
 
 private:
     static QIcon main_icon_;
+
+private slots:
+    void on_action_about();
 };
 
 #endif // MAINWINDOW_H
