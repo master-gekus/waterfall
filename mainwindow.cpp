@@ -7,14 +7,15 @@
 #include<QDir>
 #include<QIcon>
 
+QIcon MainWindow::main_icon_;
+
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent)
 {
     QDir folder(QStringLiteral(":/res/mainicon"));
-    QIcon icon;
     for(const QString& file_name : folder.entryList())
-        icon.addFile(folder.filePath(file_name));
-    setWindowIcon(icon);
+        main_icon_.addFile(folder.filePath(file_name));
+    QApplication::setWindowIcon(main_icon_);
 
     setWindowTitle(QStringLiteral("Waterfall"));
 
