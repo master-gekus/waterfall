@@ -3,6 +3,9 @@
 
 #include <QWidget>
 
+constexpr const int MIN_FIELD_SIZE = 4;
+constexpr const int MAX_FIELD_SIZE = 10;
+
 class CentralWidget : public QWidget
 {
     Q_OBJECT

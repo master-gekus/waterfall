@@ -8,14 +8,32 @@
 
 namespace
 {
-    const QString styleSheet("font-weight: bold; font-size: 12pt;");
+    class FieldButton : public QToolButton
+    {
+    public:
+        explicit FieldButton(CentralWidget* parent, int x, int y) :
+            QToolButton(parent),
+            x_(x), y_(y)
+        {
+            setIcon(QIcon(QStringLiteral(":/res/mainicon/128x128.png")));
+            setIconSize(QSize(128, 128));
+            setAutoRaise(true);
+            setVisible(false);
+        }
+
+    public:
+        int x_, y_;
+    };
+
 
     class CentralLayout : public QLayout
     {
     public:
-        CentralLayout(QWidget* parent) :
+        explicit CentralLayout(CentralWidget* parent) :
             QLayout(parent)
         {
+            static const QString styleSheet("font-weight: bold; font-size: 12pt;");
+
             label_time_ = new QLabel(QStringLiteral("Время:"), parent);
             label_clicks_ = new QLabel(QStringLiteral("Кликов:"), parent);
             edit_time_ = new QLineEdit(QStringLiteral("0:00:00"), parent);
@@ -31,13 +49,17 @@ namespace
             edit_clicks_->setReadOnly(true);
 
             btn_new_game_ = new QPushButton(QStringLiteral("Новая игра"), parent);
+
+            for (int i = 0; i < MAX_FIELD_SIZE * MAX_FIELD_SIZE; ++i)
+                btn_field_[i] = new FieldButton(parent, i % MAX_FIELD_SIZE, i / MAX_FIELD_SIZE);
         }
 
     public:
-        int field_size_ = 4;
+        int field_size_ = MIN_FIELD_SIZE;
         QLabel *label_time_, *label_clicks_;
         QLineEdit *edit_time_, *edit_clicks_;
         QPushButton *btn_new_game_;
+        FieldButton* btn_field_[MAX_FIELD_SIZE * MAX_FIELD_SIZE];
 
     private:
         void addItem(QLayoutItem*) override
@@ -85,6 +107,25 @@ namespace
             edit_clicks_->setGeometry(eo, d * 2 + eh, ew, eh);
 
             btn_new_game_->setGeometry(lo, d * 3 + eh * 2, lw + ew + d, eh);
+
+            int fbs = qMin((lo - 2 * d) / field_size_,
+                           (rect.height() - 2 * 2) / field_size_);
+            fbs = qMin(fbs, btn_field_[0]->sizeHint().width());
+            int fbo = (lo - 2 * d - fbs * field_size_) / 2;
+            for (int x = 0; x < MAX_FIELD_SIZE; x++)
+            {
+                for (int y = 0; y < MAX_FIELD_SIZE; y++)
+                {
+                    QToolButton *btn = btn_field_[y * MAX_FIELD_SIZE + x];
+                    if ((x < field_size_) && (y < field_size_))
+                    {
+                        btn->setVisible(true);
+                        btn->setGeometry(fbo + x * fbs, d + y * fbs, fbs, fbs);
+                    } else {
+                        btn->setVisible(false);
+                    }
+                }
+            }
         }
     };
 }   // namespace;
