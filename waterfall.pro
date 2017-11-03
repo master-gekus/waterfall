@@ -16,10 +16,12 @@ win32: {
 
 SOURCES += \
     main.cpp \
-    mainwindow.cpp
+    mainwindow.cpp \
+    central_widget.cpp
 
 HEADERS += \ 
-    mainwindow.h
+    mainwindow.h \
+    central_widget.h
 
 RESOURCES += \
     resources.qrc
