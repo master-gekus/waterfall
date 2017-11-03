@@ -12,6 +12,10 @@ class CentralWidget : public QWidget
 public:
     explicit CentralWidget(QWidget *parent = 0);
 
+public:
+    int gameFieldSize() const;
+    void setGameFieldSize(int new_size);
+
 signals:
 
 public slots:

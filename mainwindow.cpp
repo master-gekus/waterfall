@@ -94,9 +94,32 @@ MainWindow::MainWindow(QWidget *parent) :
     setObjectName(QStringLiteral("MainWindow"));
     setMinimumSize(QSize(640, 480));
 
+    game_field_ = new CentralWidget(this);
+    setCentralWidget(game_field_);
+
     QMenuBar* menuBar = new QMenuBar(this);
 
     QMenu* menuGame = new QMenu(QStringLiteral("Игра"), menuBar);
+
+    field_size_actions_ = new QAction*[MAX_FIELD_SIZE - MIN_FIELD_SIZE + 1];
+    field_size_group_ = new QActionGroup(this);
+    int cur_field_size = game_field_->gameFieldSize();
+    QMenu *menuFieldSize = new QMenu(QStringLiteral("Размер поля"), this);
+    for (int i = MIN_FIELD_SIZE; i <= MAX_FIELD_SIZE; ++i)
+    {
+        QAction *action = new QAction(QStringLiteral("%1 x %1").arg(i), this);
+        menuFieldSize->addAction(action);
+        action->setData(QVariant(i));
+        action->setCheckable(true);
+        field_size_group_->addAction(action);
+        if (i == cur_field_size)
+            action->setChecked(true);
+        connect(action, SIGNAL(triggered(bool)), SLOT(on_action_field_size()));
+        field_size_actions_[i - MIN_FIELD_SIZE] = action;
+    }
+    menuGame->addAction(menuFieldSize->menuAction());
+    menuGame->addSeparator();
+
     QAction *actionQuit = new QAction(QStringLiteral("Выход"), this);
     actionQuit->setMenuRole(QAction::QuitRole);
     menuGame->addAction(actionQuit);
@@ -110,10 +133,8 @@ MainWindow::MainWindow(QWidget *parent) :
     menuBar->addAction(menuHelp->menuAction());
     setMenuBar(menuBar);
 
-    connect(actionQuit, SIGNAL(triggered(bool)), this, SLOT(close()));
-    connect(actionAbout, SIGNAL(triggered(bool)), this, SLOT(on_action_about()));
-
-    setCentralWidget(new CentralWidget(this));
+    connect(actionQuit, SIGNAL(triggered(bool)), SLOT(close()));
+    connect(actionAbout, SIGNAL(triggered(bool)), SLOT(on_action_about()));
 }
 
 MainWindow::~MainWindow()
@@ -123,5 +144,12 @@ MainWindow::~MainWindow()
 void MainWindow::on_action_about()
 {
     AboutBox(this).exec();
+}
+
+void MainWindow::on_action_field_size()
+{
+    QAction *action = dynamic_cast<QAction*>(sender());
+    Q_ASSERT(action);
+    game_field_->setGameFieldSize(action->data().toInt());
 }
 

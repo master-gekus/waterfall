@@ -17,7 +17,7 @@ namespace
         {
             setIcon(QIcon(QStringLiteral(":/res/mainicon/128x128.png")));
             setIconSize(QSize(128, 128));
-            setAutoRaise(true);
+//            setAutoRaise(true);
             setVisible(false);
         }
 
@@ -109,9 +109,9 @@ namespace
             btn_new_game_->setGeometry(lo, d * 3 + eh * 2, lw + ew + d, eh);
 
             int fbs = qMin((lo - 2 * d) / field_size_,
-                           (rect.height() - 2 * 2) / field_size_);
+                           (rect.height() - 2 * d) / field_size_);
             fbs = qMin(fbs, btn_field_[0]->sizeHint().width());
-            int fbo = (lo - 2 * d - fbs * field_size_) / 2;
+            int fbo = (lo - fbs * field_size_) / 2;
             for (int x = 0; x < MAX_FIELD_SIZE; x++)
             {
                 for (int y = 0; y < MAX_FIELD_SIZE; y++)
@@ -134,4 +134,28 @@ CentralWidget::CentralWidget(QWidget *parent) :
     QWidget(parent)
 {
     new CentralLayout(this);
+}
+
+int CentralWidget::gameFieldSize() const
+{
+    CentralLayout *l= dynamic_cast<CentralLayout*>(layout());
+    Q_ASSERT(l);
+    return l->field_size_;
+}
+
+void CentralWidget::setGameFieldSize(int new_size)
+{
+    CentralLayout *l= dynamic_cast<CentralLayout*>(layout());
+    Q_ASSERT(l);
+
+    if (l->field_size_ == new_size) {
+        return;
+    }
+
+    if ((MIN_FIELD_SIZE > new_size) || (MAX_FIELD_SIZE < new_size)) {
+        return;
+    }
+
+    l->field_size_ = new_size;
+    l->update();
 }
