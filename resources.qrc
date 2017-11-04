@@ -6,5 +6,6 @@
         <file>res/mainicon/48x48.png</file>
         <file>res/mainicon/64x64.png</file>
         <file>res/mainicon/128x128.png</file>
+        <file>res/bricks.png</file>
     </qresource>
 </RCC>
