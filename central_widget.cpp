@@ -5,26 +5,99 @@
 #include <QPushButton>
 #include <QLabel>
 #include <QLineEdit>
+#include <QTimer>
 
 namespace
 {
     class FieldButton : public QToolButton
     {
     public:
+        enum State
+        {
+            Horizontal,
+            HorizontalAnimated,
+            Vertical,
+            VerticalAnimated,
+            Undefined
+        };
+
+    public:
         explicit FieldButton(CentralWidget* parent, int x, int y) :
             QToolButton(parent),
-            x_(x), y_(y)
+            x_(x), y_(y), state_(Horizontal), stage_(0)
         {
             Q_ASSERT(!state_icons_[0].isNull());
-            setIcon(state_icons_[12]);
             setIconSize(QSize(128, 128));
             setAutoRaise(true);
             setVisible(false);
-            setEnabled(false);
+            setIconByState();
+        }
+
+        bool updateStateByTimer()
+        {
+            switch(state_)
+            {
+            case HorizontalAnimated:
+            case VerticalAnimated:
+                stage_ = (stage_ + 1) % 6;
+                break;
+            default:
+                return false;
+            }
+            if (0 == stage_) {
+                state_ = (HorizontalAnimated == state_) ? Vertical : Horizontal;
+            }
+            setIconByState();
+            return (0 == stage_);
+        }
+
+        void startAnimate()
+        {
+            switch(state_)
+            {
+            case Horizontal:
+                state_ = HorizontalAnimated;
+                break;
+            case Vertical:
+                state_ = VerticalAnimated;
+                break;
+            default:
+                return;
+            }
+            stage_ = 1;
+            setIconByState();
+        }
+
+    private:
+        void setIconByState()
+        {
+            switch(state_)
+            {
+            case Horizontal:
+                setIcon(state_icons_[0]);
+                break;
+            case HorizontalAnimated:
+                setIcon(state_icons_[stage_]);
+                break;
+            case Vertical:
+                setIcon(state_icons_[6]);
+                break;
+            case VerticalAnimated:
+                setIcon(state_icons_[stage_ + 6]);
+                break;
+            case Undefined:
+                setIcon(state_icons_[12]);
+                break;
+            default:
+                return;
+            }
+            setEnabled(Undefined != state_);
         }
 
     public:
         int x_, y_;
+        State state_;
+        int stage_;
         static QIcon state_icons_[13];
     };
     QIcon FieldButton::state_icons_[13];
@@ -61,7 +134,13 @@ namespace
 
             for (int i = 0; i < MAX_FIELD_SIZE * MAX_FIELD_SIZE; ++i) {
                 btn_field_[i] = new FieldButton(parent, i % MAX_FIELD_SIZE, i / MAX_FIELD_SIZE);
+                connect(btn_field_[i], &FieldButton::clicked, this, &CentralLayout::on_field_button_clicked);
             }
+
+            animate_timer_.setSingleShot(false);
+            animate_timer_.setInterval(50);
+            animate_timer_.setTimerType(Qt::PreciseTimer);
+            connect(&animate_timer_, &QTimer::timeout, this, &CentralLayout::on_animate_timer, Qt::QueuedConnection);
         }
 
     public:
@@ -70,6 +149,7 @@ namespace
         QLineEdit *edit_time_, *edit_clicks_;
         QPushButton *btn_new_game_;
         FieldButton* btn_field_[MAX_FIELD_SIZE * MAX_FIELD_SIZE];
+        QTimer animate_timer_;
 
     private:
         void addItem(QLayoutItem*) override
@@ -134,6 +214,29 @@ namespace
                     } else {
                         btn->setVisible(false);
                     }
+                }
+            }
+        }
+
+    private:
+        void on_field_button_clicked()
+        {
+            FieldButton *btn = dynamic_cast<FieldButton*>(sender());
+            if (nullptr == btn) {
+                return;
+            }
+            btn->startAnimate();
+            animate_timer_.start();
+        }
+
+        void on_animate_timer()
+        {
+            for (int x = 0; x < MAX_FIELD_SIZE; x++)
+            {
+                for (int y = 0; y < MAX_FIELD_SIZE; y++)
+                {
+                    FieldButton *btn = btn_field_[y * MAX_FIELD_SIZE + x];
+                    btn->updateStateByTimer();
                 }
             }
         }
