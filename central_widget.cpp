@@ -21,6 +21,15 @@ namespace
             Undefined
         };
 
+        enum Directions {
+            Up      = 0x01,
+            Down    = 0x02,
+            Left    = 0x04,
+            Right   = 0x08,
+            All     = (Up | Down | Left | Right),
+        };
+        Q_DECLARE_FLAGS(Direction, Directions)
+
     public:
         explicit FieldButton(CentralWidget* parent, int x, int y) :
             QToolButton(parent),
@@ -98,9 +107,11 @@ namespace
         int x_, y_;
         State state_;
         int stage_;
+        Direction next_direction_;
         static QIcon state_icons_[13];
     };
     QIcon FieldButton::state_icons_[13];
+    Q_DECLARE_OPERATORS_FOR_FLAGS(FieldButton::Direction)
 
     class CentralLayout : public QLayout
     {
@@ -125,8 +136,8 @@ namespace
             label_clicks_->setStyleSheet(styleSheet);
             edit_time_->setStyleSheet(styleSheet);
             edit_clicks_->setStyleSheet(styleSheet);
-            edit_time_->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
-            edit_clicks_->setAlignment(Qt::AlignRight | Qt::AlignVCenter);
+            edit_time_->setAlignment(Qt::Alignment(Qt::AlignRight | Qt::AlignVCenter));
+            edit_clicks_->setAlignment(Qt::Alignment(Qt::AlignRight | Qt::AlignVCenter));
             edit_time_->setReadOnly(true);
             edit_clicks_->setReadOnly(true);
 
@@ -225,18 +236,41 @@ namespace
             if (nullptr == btn) {
                 return;
             }
+            btn->next_direction_ = FieldButton::All;
             btn->startAnimate();
             animate_timer_.start();
         }
 
         void on_animate_timer()
         {
-            for (int x = 0; x < MAX_FIELD_SIZE; x++)
+            QMap<FieldButton*, FieldButton::Direction> next_btns;
+            bool animation_finished = false;
+            for (int x = 0; x < field_size_; x++)
             {
-                for (int y = 0; y < MAX_FIELD_SIZE; y++)
+                for (int y = 0; y < field_size_; y++)
                 {
                     FieldButton *btn = btn_field_[y * MAX_FIELD_SIZE + x];
-                    btn->updateStateByTimer();
+                    if (btn->updateStateByTimer())
+                    {
+                        animation_finished = true;
+                        if ((0 != (btn->next_direction_ & FieldButton::Left)) && (x > 0)) {
+                            next_btns.insert(btn_field_[y * MAX_FIELD_SIZE + x - 1], FieldButton::Left);
+                        }
+                        if ((0 != (btn->next_direction_ & FieldButton::Right)) && (x < (field_size_ - 1))) {
+                            next_btns.insert(btn_field_[y * MAX_FIELD_SIZE + x + 1], FieldButton::Right);
+                        }
+                        if ((0 != (btn->next_direction_ & FieldButton::Up)) && (y > 0)) {
+                            next_btns.insert(btn_field_[(y - 1) * MAX_FIELD_SIZE + x], FieldButton::Up);
+                        }
+                        if ((0 != (btn->next_direction_ & FieldButton::Down)) && (y < (field_size_ - 1))) {
+                            next_btns.insert(btn_field_[(y + 1) * MAX_FIELD_SIZE + x], FieldButton::Down);
+                        }
+                    }
+                }
+                for (auto it = next_btns.cbegin(); it != next_btns.cend(); ++it) {
+                    FieldButton *btn = it.key();
+                    btn->next_direction_ = it.value();
+                    btn->startAnimate();
                 }
             }
         }
