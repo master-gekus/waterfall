@@ -15,16 +15,19 @@ namespace
             QToolButton(parent),
             x_(x), y_(y)
         {
-            setIcon(QIcon(QStringLiteral(":/res/mainicon/128x128.png")));
+            Q_ASSERT(!state_icons_[0].isNull());
+            setIcon(state_icons_[12]);
             setIconSize(QSize(128, 128));
-//            setAutoRaise(true);
+            setAutoRaise(true);
             setVisible(false);
+            setEnabled(false);
         }
 
     public:
         int x_, y_;
+        static QIcon state_icons_[13];
     };
-
+    QIcon FieldButton::state_icons_[13];
 
     class CentralLayout : public QLayout
     {
@@ -32,6 +35,12 @@ namespace
         explicit CentralLayout(CentralWidget* parent) :
             QLayout(parent)
         {
+            QPixmap state_icons;
+            state_icons.load(QStringLiteral(":/res/bricks.png"));
+            for (int i = 0; i < 13; i++) {
+                FieldButton::state_icons_[i].addPixmap(state_icons.copy(i * 128, 0, 128, 128));
+            }
+
             static const QString styleSheet("font-weight: bold; font-size: 12pt;");
 
             label_time_ = new QLabel(QStringLiteral("Время:"), parent);
@@ -50,8 +59,9 @@ namespace
 
             btn_new_game_ = new QPushButton(QStringLiteral("Новая игра"), parent);
 
-            for (int i = 0; i < MAX_FIELD_SIZE * MAX_FIELD_SIZE; ++i)
+            for (int i = 0; i < MAX_FIELD_SIZE * MAX_FIELD_SIZE; ++i) {
                 btn_field_[i] = new FieldButton(parent, i % MAX_FIELD_SIZE, i / MAX_FIELD_SIZE);
+            }
         }
 
     public:
