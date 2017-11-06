@@ -17,6 +17,8 @@
 #include <QMessageBox>
 
 #include "central_widget.h"
+#include "hiscores.h"
+
 namespace
 {
     class AboutBox : public QDialog
@@ -125,6 +127,9 @@ MainWindow::MainWindow(QWidget *parent) :
     QAction *actionGameNew = new QAction(QStringLiteral("Новая"), this);
     actionGameNew->setShortcut(Qt::Key_F2);
     menuGame->addAction(actionGameNew);
+
+    QAction *actionHiscores = new QAction(QStringLiteral("Таблица рекордов..."), this);
+    menuGame->addAction(actionHiscores);
     menuGame->addSeparator();
 
     QAction *actionQuit = new QAction(QStringLiteral("Выход"), this);
@@ -143,6 +148,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(actionQuit, SIGNAL(triggered(bool)), SLOT(close()));
     connect(actionAbout, SIGNAL(triggered(bool)), SLOT(on_action_about()));
     connect(actionGameNew, SIGNAL(triggered(bool)), SLOT(on_action_game_new()));
+    connect(actionHiscores, SIGNAL(triggered(bool)), SLOT(on_action_hiscores()));
     connect(game_field_->newGameButton(), SIGNAL(clicked(bool)), SLOT(on_action_game_new()));
     connect(game_field_, SIGNAL(gameFinished(quint64,quint32)), SLOT(on_game_finished(quint64,quint32)));
 }
@@ -173,5 +179,10 @@ void MainWindow::on_game_finished(quint64 msecs_passed, quint32 clicks)
     QMessageBox::information(this, QStringLiteral("Поздравляем!"),
                              QStringLiteral("Вы успешно решили головоломку за %1 миллисекунд и %2 кликов!")
                              .arg(msecs_passed).arg(clicks));
+}
+
+void MainWindow::on_action_hiscores()
+{
+    Hiscores(this).exec();
 }
 

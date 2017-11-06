@@ -17,11 +17,13 @@ win32: {
 SOURCES += \
     main.cpp \
     mainwindow.cpp \
-    central_widget.cpp
+    central_widget.cpp \
+    hiscores.cpp
 
 HEADERS += \ 
     mainwindow.h \
-    central_widget.h
+    central_widget.h \
+    hiscores.h
 
 RESOURCES += \
     resources.qrc

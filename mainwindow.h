@@ -32,6 +32,7 @@ private slots:
     void on_action_about();
     void on_action_field_size();
     void on_action_game_new();
+    void on_action_hiscores();
     void on_game_finished(quint64 msecs_passed, quint32 clicks);
 };
 
