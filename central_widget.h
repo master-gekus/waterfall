@@ -29,8 +29,13 @@ public:
     void setGameFieldSize(int new_size);
     QPushButton* newGameButton() const;
     void startNewGame();
+    bool undoAvail() const;
+    void undo();
+    bool redoAvail() const;
+    void redo();
 
 signals:
+    void animationFinished();
     void gameFinished(quint64 time_passed, quint32 clicks);
 
 public slots:

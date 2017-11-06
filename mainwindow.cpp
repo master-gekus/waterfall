@@ -130,9 +130,20 @@ MainWindow::MainWindow(QWidget *parent) :
     menuGame->addAction(menuFieldSize->menuAction());
     menuGame->addSeparator();
 
-    QAction *actionGameNew = new QAction(QStringLiteral("Новая"), this);
+    QAction *actionGameNew = new QAction(QStringLiteral("Новая игра"), this);
     actionGameNew->setShortcut(Qt::Key_F2);
     menuGame->addAction(actionGameNew);
+    menuGame->addSeparator();
+
+    action_undo_ = new QAction(QStringLiteral("Отменить ход"), this);
+    action_undo_->setShortcuts(QKeySequence::keyBindings(QKeySequence::Undo));
+    action_undo_->setEnabled(false);
+    menuGame->addAction(action_undo_);
+    action_redo_ = new QAction(QStringLiteral("Повторить ход"), this);
+    action_redo_->setShortcuts(QKeySequence::keyBindings(QKeySequence::Redo));
+    action_redo_->setEnabled(false);
+    menuGame->addAction(action_redo_);
+    menuGame->addSeparator();
 
     QAction *actionHiscores = new QAction(QStringLiteral("Таблица рекордов..."), this);
     menuGame->addAction(actionHiscores);
@@ -157,8 +168,11 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(actionAbout, SIGNAL(triggered(bool)), SLOT(on_action_about()));
     connect(actionGameNew, SIGNAL(triggered(bool)), SLOT(on_action_game_new()));
     connect(actionHiscores, SIGNAL(triggered(bool)), SLOT(on_action_hiscores()));
+    connect(action_undo_, SIGNAL(triggered(bool)), SLOT(on_action_undo()));
+    connect(action_redo_, SIGNAL(triggered(bool)), SLOT(on_action_redo()));
     connect(game_field_->newGameButton(), SIGNAL(clicked(bool)), SLOT(on_action_game_new()));
     connect(game_field_, SIGNAL(gameFinished(quint64,quint32)), SLOT(on_game_finished(quint64,quint32)));
+    connect(game_field_, SIGNAL(animationFinished()), SLOT(on_animation_finished()));
 }
 
 MainWindow::~MainWindow()
@@ -189,6 +203,24 @@ void MainWindow::on_action_field_size()
 void MainWindow::on_action_game_new()
 {
     game_field_->startNewGame();
+}
+
+void MainWindow::on_action_undo()
+{
+    game_field_->undo();
+    on_animation_finished();
+}
+
+void MainWindow::on_action_redo()
+{
+    game_field_->redo();
+    on_animation_finished();
+}
+
+void MainWindow::on_animation_finished()
+{
+    action_undo_->setEnabled(game_field_->undoAvail());
+    action_redo_->setEnabled(game_field_->redoAvail());
 }
 
 namespace

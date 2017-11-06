@@ -183,6 +183,8 @@ namespace
         CentralWidget::State state_ = CentralWidget::Shadow;
         quint64 time_start_ = 0;
         quint32 clicks_ = 0;
+        QVector<QPoint> undo_buffer_;
+        int undo_pos_ = 0;
 
     private:
         void update_game_stat()
@@ -238,10 +240,24 @@ namespace
             for (int i = 0; i < MAX_FIELD_SIZE * MAX_FIELD_SIZE; ++i) {
                 btn_field_[i]->setIconByState();
             }
+
+            undo_buffer_.clear();
+            undo_pos_ = 0;
             state_ = CentralWidget::GamePlayWait;
             time_start_ = QDateTime::currentMSecsSinceEpoch();
             clicks_ = 0;
             gameplay_timer_.start();
+            update_game_stat();
+        }
+
+        void process_btn_click(FieldButton *btn)
+        {
+            btn->next_direction_ = FieldButton::All;
+            btn->startAnimate();
+            state_ = CentralWidget::GamePlayAnimation;
+            animate_timer_.start();
+
+            clicks_++;
             update_game_stat();
         }
 
@@ -324,13 +340,10 @@ namespace
                 return;
             }
 
-            btn->next_direction_ = FieldButton::All;
-            btn->startAnimate();
-            state_ = CentralWidget::GamePlayAnimation;
-            animate_timer_.start();
+            undo_buffer_.resize(++undo_pos_);
+            undo_buffer_[undo_pos_ - 1] = QPoint(btn->x_, btn->y_);
 
-            clicks_++;
-            update_game_stat();
+            process_btn_click(btn);
         }
 
         void on_animate_timer()
@@ -367,27 +380,33 @@ namespace
                 btn->next_direction_ = it.value();
                 btn->startAnimate();
             }
-            if (animation_finished && next_btns.isEmpty()) {
-                animate_timer_.stop();
 
-                state_ = CentralWidget::GameWin;
-                for (int x = 0; (CentralWidget::GameWin == state_) && (x < field_size_); x++) {
-                    for (int y = 0; (CentralWidget::GameWin == state_) && (y < field_size_); y++) {
-                        if (FieldButton::Horizontal != btn_field_[y * MAX_FIELD_SIZE + x]->state_) {
-                            state_ = CentralWidget::GamePlayWait;
+            if (animation_finished) {
+                CentralWidget *parent = dynamic_cast<CentralWidget*>(parentWidget());
+                Q_ASSERT(parent);
+
+                if (next_btns.isEmpty()) {
+                    animate_timer_.stop();
+
+                    state_ = CentralWidget::GameWin;
+                    for (int x = 0; (CentralWidget::GameWin == state_) && (x < field_size_); x++) {
+                        for (int y = 0; (CentralWidget::GameWin == state_) && (y < field_size_); y++) {
+                            if (FieldButton::Horizontal != btn_field_[y * MAX_FIELD_SIZE + x]->state_) {
+                                state_ = CentralWidget::GamePlayWait;
+                            }
                         }
                     }
+                    if (CentralWidget::GameWin == state_)
+                    {
+                        gameplay_timer_.stop();
+                        update_game_stat();
+                        emit
+                            parent->gameFinished(QDateTime::currentMSecsSinceEpoch() - time_start_, clicks_);
+                    }
                 }
-                if (CentralWidget::GameWin == state_)
-                {
-                    CentralWidget *parent = dynamic_cast<CentralWidget*>(parentWidget());
-                    Q_ASSERT(parent);
 
-                    gameplay_timer_.stop();
-                    update_game_stat();
-                    emit
-                        parent->gameFinished(QDateTime::currentMSecsSinceEpoch() - time_start_, clicks_);
-                }
+                emit
+                    parent->animationFinished();
             }
         }
     };
@@ -420,6 +439,8 @@ void CentralWidget::setGameFieldSize(int new_size)
     }
 
     l->field_size_ = new_size;
+    l->undo_buffer_.clear();
+    l->undo_pos_ = 0;
 
     if (Shadow != l->state_) {
         l->startNewGame();
@@ -440,4 +461,40 @@ void CentralWidget::startNewGame()
     CentralLayout *l= dynamic_cast<CentralLayout*>(layout());
     Q_ASSERT(l);
     l->startNewGame();
+}
+
+bool CentralWidget::undoAvail() const
+{
+    CentralLayout *l= dynamic_cast<CentralLayout*>(layout());
+    Q_ASSERT(l);
+    return ((GamePlayWait == l->state_) && (0 < l->undo_pos_));
+}
+
+void CentralWidget::undo()
+{
+    CentralLayout *l= dynamic_cast<CentralLayout*>(layout());
+    Q_ASSERT(l);
+
+    if ((GamePlayWait == l->state_) && (0 < l->undo_pos_)) {
+        const QPoint& p = l->undo_buffer_[--(l->undo_pos_)];
+        l->process_btn_click(l->btn_field_[p.y() * MAX_FIELD_SIZE + p.x()]);
+    }
+}
+
+bool CentralWidget::redoAvail() const
+{
+    CentralLayout *l= dynamic_cast<CentralLayout*>(layout());
+    Q_ASSERT(l);
+    return ((GamePlayWait == l->state_) && (l->undo_buffer_.size() >l->undo_pos_));
+}
+
+void CentralWidget::redo()
+{
+    CentralLayout *l= dynamic_cast<CentralLayout*>(layout());
+    Q_ASSERT(l);
+
+    if ((GamePlayWait == l->state_) && (l->undo_buffer_.size() >l->undo_pos_)) {
+        const QPoint& p = l->undo_buffer_[(l->undo_pos_)++];
+        l->process_btn_click(l->btn_field_[p.y() * MAX_FIELD_SIZE + p.x()]);
+    }
 }
