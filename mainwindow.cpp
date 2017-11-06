@@ -14,6 +14,7 @@
 #include <QSpacerItem>
 #include <QDialogButtonBox>
 #include <QPushButton>
+#include <QMessageBox>
 
 #include "central_widget.h"
 namespace
@@ -143,6 +144,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(actionAbout, SIGNAL(triggered(bool)), SLOT(on_action_about()));
     connect(actionGameNew, SIGNAL(triggered(bool)), SLOT(on_action_game_new()));
     connect(game_field_->newGameButton(), SIGNAL(clicked(bool)), SLOT(on_action_game_new()));
+    connect(game_field_, SIGNAL(gameFinished(quint64,quint32)), SLOT(on_game_finished(quint64,quint32)));
 }
 
 MainWindow::~MainWindow()
@@ -164,5 +166,12 @@ void MainWindow::on_action_field_size()
 void MainWindow::on_action_game_new()
 {
     game_field_->startNewGame();
+}
+
+void MainWindow::on_game_finished(quint64 msecs_passed, quint32 clicks)
+{
+    Q_UNUSED(msecs_passed);
+    Q_UNUSED(clicks);
+    QMessageBox::information(this, QStringLiteral("Поздравляем!"), QStringLiteral("Вы победили!"));
 }
 

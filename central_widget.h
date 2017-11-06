@@ -31,7 +31,7 @@ public:
     void startNewGame();
 
 signals:
-    void gameFinished(quint64 time_passed);
+    void gameFinished(quint64 time_passed, quint32 clicks);
 
 public slots:
 };

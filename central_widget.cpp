@@ -320,10 +320,8 @@ namespace
 
             QMap<FieldButton*, FieldButton::Direction> next_btns;
             bool animation_finished = false;
-            for (int x = 0; x < field_size_; x++)
-            {
-                for (int y = 0; y < field_size_; y++)
-                {
+            for (int x = 0; x < field_size_; x++) {
+                for (int y = 0; y < field_size_; y++) {
                     FieldButton *btn = btn_field_[y * MAX_FIELD_SIZE + x];
                     if (btn->updateStateByTimer())
                     {
@@ -350,7 +348,22 @@ namespace
             }
             if (animation_finished && next_btns.isEmpty()) {
                 animate_timer_.stop();
-                state_ = CentralWidget::GamePlayWait;
+
+                state_ = CentralWidget::GameWin;
+                for (int x = 0; (CentralWidget::GameWin == state_) && (x < field_size_); x++) {
+                    for (int y = 0; (CentralWidget::GameWin == state_) && (y < field_size_); y++) {
+                        if (FieldButton::Horizontal != btn_field_[y * MAX_FIELD_SIZE + x]->state_) {
+                            state_ = CentralWidget::GamePlayWait;
+                        }
+                    }
+                }
+                if (CentralWidget::GameWin == state_)
+                {
+                    CentralWidget *parent = dynamic_cast<CentralWidget*>(parentWidget());
+                    Q_ASSERT(parent);
+                    emit
+                        parent->gameFinished(0, 0);
+                }
             }
         }
     };
