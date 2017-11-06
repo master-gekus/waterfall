@@ -10,13 +10,13 @@
 #include <QSet>
 #include <QPoint>
 
+Q_DECL_CONSTEXPR inline uint qHash(const QPoint& point, uint seed = 0)
+{
+    return qHash(point.x(), seed) ^ qHash(point.y() << 8, seed) ^ seed;
+}
+
 namespace
 {
-    Q_DECL_CONSTEXPR inline uint qHash(const QPoint& point, uint seed = 0)
-    {
-        return ::qHash(point.x(), seed) ^ ::qHash(point.y() << 8, seed) ^ seed;
-    }
-
     class FieldButton : public QToolButton
     {
     public:
@@ -123,7 +123,6 @@ namespace
         static QIcon state_icons_[13];
     };
     QIcon FieldButton::state_icons_[13];
-    Q_DECLARE_OPERATORS_FOR_FLAGS(FieldButton::Direction)
 
     class CentralLayout : public QLayout
     {
