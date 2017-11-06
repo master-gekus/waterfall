@@ -6,9 +6,17 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QTimer>
+#include <QDateTime>
+#include <QSet>
+#include <QPoint>
 
 namespace
 {
+    Q_DECL_CONSTEXPR inline uint qHash(const QPoint& point, uint seed = 0)
+    {
+        return ::qHash(point.x(), seed) ^ ::qHash(point.y() << 8, seed) ^ seed;
+    }
+
     class FieldButton : public QToolButton
     {
     public:
@@ -33,7 +41,7 @@ namespace
     public:
         explicit FieldButton(CentralWidget* parent, int x, int y) :
             QToolButton(parent),
-            x_(x), y_(y), state_(Horizontal), stage_(0)
+            x_(x), y_(y), state_(Undefined), stage_(0)
         {
             Q_ASSERT(!state_icons_[0].isNull());
             setIconSize(QSize(128, 128));
@@ -77,7 +85,11 @@ namespace
             setIconByState();
         }
 
-    private:
+        void inverse()
+        {
+            state_ = (Horizontal == state_) ? Vertical : Horizontal;
+        }
+
         void setIconByState()
         {
             switch(state_)
@@ -119,6 +131,8 @@ namespace
         explicit CentralLayout(CentralWidget* parent) :
             QLayout(parent)
         {
+            qsrand(static_cast<uint>(QDateTime::currentMSecsSinceEpoch()));
+
             QPixmap state_icons;
             state_icons.load(QStringLiteral(":/res/bricks.png"));
             for (int i = 0; i < 13; i++) {
@@ -161,6 +175,57 @@ namespace
         QPushButton *btn_new_game_;
         FieldButton* btn_field_[MAX_FIELD_SIZE * MAX_FIELD_SIZE];
         QTimer animate_timer_;
+        CentralWidget::State state_ = CentralWidget::Shadow;
+
+    public:
+        void startNewGame()
+        {
+            animate_timer_.stop();
+
+            for (int i = 0; i < MAX_FIELD_SIZE * MAX_FIELD_SIZE; ++i) {
+                btn_field_[i]->state_ = FieldButton::Horizontal;
+            }
+
+            // Заполним случайными значениями. Вообще говоря, для чётных размерностей полей
+            // решение существует при любом раскладе. Но для нечётных размерностей мне не удалось
+            // найти общего решения. Поэтому просто выполним случайное количество неповторяющихся
+            // случайных ходов.
+            while (true) {
+                QSet<QPoint> steps;
+                int size = field_size_ * field_size_;
+                int count = (size / 4) + (qrand() % (size / 2));
+                for (int i = 0; i < count; ++i) {
+                    QPoint point(qrand() % field_size_, qrand() % field_size_);
+                    if (steps.contains(point)) {
+                        continue;
+                    }
+                    steps.insert(point);
+
+                    for (int i = 0; i < field_size_; ++i) {
+                        btn_field_[point.y() * MAX_FIELD_SIZE + i]->inverse();
+                        btn_field_[i * MAX_FIELD_SIZE + point.x()]->inverse();
+                    }
+                    btn_field_[point.y() * MAX_FIELD_SIZE + point.x()]->inverse();
+                }
+
+                bool found = false;
+                for (int x = 0; (!found) && (x < field_size_); ++ x) {
+                    for (int y = 0; (!found) && (y < field_size_); ++y) {
+                        if (FieldButton::Horizontal != btn_field_[y * MAX_FIELD_SIZE + x]->state_) {
+                            found = true;
+                        }
+                    }
+                }
+                if (found) {
+                    break;
+                }
+            }
+
+            for (int i = 0; i < MAX_FIELD_SIZE * MAX_FIELD_SIZE; ++i) {
+                btn_field_[i]->setIconByState();
+            }
+            state_ = CentralWidget::GamePlayWait;
+        }
 
     private:
         void addItem(QLayoutItem*) override
@@ -232,17 +297,27 @@ namespace
     private:
         void on_field_button_clicked()
         {
+            if (CentralWidget::GamePlayWait != state_) {
+                return;
+            }
+
             FieldButton *btn = dynamic_cast<FieldButton*>(sender());
             if (nullptr == btn) {
                 return;
             }
+
             btn->next_direction_ = FieldButton::All;
             btn->startAnimate();
+            state_ = CentralWidget::GamePlayAnimation;
             animate_timer_.start();
         }
 
         void on_animate_timer()
         {
+            if (CentralWidget::GamePlayAnimation != state_) {
+                return;
+            }
+
             QMap<FieldButton*, FieldButton::Direction> next_btns;
             bool animation_finished = false;
             for (int x = 0; x < field_size_; x++)
@@ -267,11 +342,15 @@ namespace
                         }
                     }
                 }
-                for (auto it = next_btns.cbegin(); it != next_btns.cend(); ++it) {
-                    FieldButton *btn = it.key();
-                    btn->next_direction_ = it.value();
-                    btn->startAnimate();
-                }
+            }
+            for (auto it = next_btns.cbegin(); it != next_btns.cend(); ++it) {
+                FieldButton *btn = it.key();
+                btn->next_direction_ = it.value();
+                btn->startAnimate();
+            }
+            if (animation_finished && next_btns.isEmpty()) {
+                animate_timer_.stop();
+                state_ = CentralWidget::GamePlayWait;
             }
         }
     };
@@ -304,5 +383,24 @@ void CentralWidget::setGameFieldSize(int new_size)
     }
 
     l->field_size_ = new_size;
+
+    if (Shadow != l->state_) {
+        l->startNewGame();
+    }
+
     l->update();
+}
+
+QPushButton* CentralWidget::newGameButton() const
+{
+    CentralLayout *l= dynamic_cast<CentralLayout*>(layout());
+    Q_ASSERT(l);
+    return l->btn_new_game_;
+}
+
+void CentralWidget::startNewGame()
+{
+    CentralLayout *l= dynamic_cast<CentralLayout*>(layout());
+    Q_ASSERT(l);
+    l->startNewGame();
 }

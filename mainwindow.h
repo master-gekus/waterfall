@@ -31,6 +31,7 @@ private:
 private slots:
     void on_action_about();
     void on_action_field_size();
+    void on_action_game_new();
 };
 
 #endif // MAINWINDOW_H

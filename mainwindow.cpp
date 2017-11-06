@@ -13,6 +13,7 @@
 #include <QLabel>
 #include <QSpacerItem>
 #include <QDialogButtonBox>
+#include <QPushButton>
 
 #include "central_widget.h"
 namespace
@@ -120,6 +121,11 @@ MainWindow::MainWindow(QWidget *parent) :
     menuGame->addAction(menuFieldSize->menuAction());
     menuGame->addSeparator();
 
+    QAction *actionGameNew = new QAction(QStringLiteral("Новая"), this);
+    actionGameNew->setShortcut(Qt::Key_F2);
+    menuGame->addAction(actionGameNew);
+    menuGame->addSeparator();
+
     QAction *actionQuit = new QAction(QStringLiteral("Выход"), this);
     actionQuit->setMenuRole(QAction::QuitRole);
     menuGame->addAction(actionQuit);
@@ -135,6 +141,8 @@ MainWindow::MainWindow(QWidget *parent) :
 
     connect(actionQuit, SIGNAL(triggered(bool)), SLOT(close()));
     connect(actionAbout, SIGNAL(triggered(bool)), SLOT(on_action_about()));
+    connect(actionGameNew, SIGNAL(triggered(bool)), SLOT(on_action_game_new()));
+    connect(game_field_->newGameButton(), SIGNAL(clicked(bool)), SLOT(on_action_game_new()));
 }
 
 MainWindow::~MainWindow()
@@ -151,5 +159,10 @@ void MainWindow::on_action_field_size()
     QAction *action = dynamic_cast<QAction*>(sender());
     Q_ASSERT(action);
     game_field_->setGameFieldSize(action->data().toInt());
+}
+
+void MainWindow::on_action_game_new()
+{
+    game_field_->startNewGame();
 }
 
