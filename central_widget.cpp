@@ -10,6 +10,8 @@
 #include <QSet>
 #include <QPoint>
 
+#include "hiscores.h"
+
 Q_DECL_CONSTEXPR inline uint qHash(const QPoint& point, uint seed = 0)
 {
     return qHash(point.x(), seed) ^ qHash(point.y() << 8, seed) ^ seed;
@@ -186,10 +188,7 @@ namespace
         void update_game_stat()
         {
             edit_clicks_->setText(QString::number(clicks_));
-            quint64 delta = (QDateTime::currentMSecsSinceEpoch() - time_start_ + 500) / 1000;
-            edit_time_->setText(QStringLiteral("%1:%2:%3").arg(delta / 3600)
-                                .arg((delta / 60) % 60, 2, 10, QChar('0'))
-                                .arg(delta % 60, 2, 10, QChar('0')));
+            edit_time_->setText(Hiscores::timeToString(QDateTime::currentMSecsSinceEpoch() - time_start_));
         }
 
     public:

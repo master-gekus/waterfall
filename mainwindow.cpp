@@ -15,6 +15,9 @@
 #include <QDialogButtonBox>
 #include <QPushButton>
 #include <QMessageBox>
+#include <QInputDialog>
+#include <QTimer>
+#include <QSettings>
 
 #include "central_widget.h"
 #include "hiscores.h"
@@ -174,15 +177,87 @@ void MainWindow::on_action_game_new()
     game_field_->startNewGame();
 }
 
+namespace
+{
+    const QString& switch_mes(uint value, const QString& one, const QString& two, const QString& many)
+    {
+        if((10 < value) && (20 > value)) {
+            return many;
+        }
+        switch (value % 10) {
+        case 1:
+            return one;
+        case 2:
+        case 3:
+        case 4:
+            return two;
+        default:
+            return many;
+        }
+    }
+}
+
 void MainWindow::on_game_finished(quint64 msecs_passed, quint32 clicks)
 {
-    QMessageBox::information(this, QStringLiteral("Поздравляем!"),
-                             QStringLiteral("Вы успешно решили головоломку за %1 миллисекунд и %2 кликов!")
-                             .arg(msecs_passed).arg(clicks));
+    quint64 secs = (msecs_passed + 500) / 1000;
+    QString str_time;
+    if (3600 <= secs) {
+        uint hours = secs / 3600;
+        str_time = QStringLiteral("%1 %2 ").arg(hours).arg(switch_mes(hours,
+            QStringLiteral("час"), QStringLiteral("часа"), QStringLiteral("часов")));
+    }
+
+    if (60 <= secs) {
+        uint minutes = (secs / 60) % 60;
+        str_time += QStringLiteral("%1 %2 ").arg(minutes).arg(switch_mes(minutes,
+            QStringLiteral("минуту"), QStringLiteral("минуты"), QStringLiteral("минут")));
+    }
+
+    uint seconds = secs % 60;
+    str_time += QStringLiteral("%1 %2 и %3 %4").arg(seconds).arg(switch_mes(seconds,
+        QStringLiteral("секунду"), QStringLiteral("секунды"), QStringLiteral("секунд")))
+        .arg(clicks).arg(switch_mes(clicks,
+        QStringLiteral("клик"), QStringLiteral("клика"), QStringLiteral("кликов")));
+    str_time = QStringLiteral("Вы успешно решили головоломку за %1!").arg(str_time);
+
+    int field_size = game_field_->gameFieldSize();
+
+    if (Hiscores::isInHiScore(field_size, msecs_passed, clicks)) {
+        static const QString& key_user_name = QStringLiteral("User name");
+        QSettings settings;
+        QString name = settings.value(key_user_name).toString();
+        if (name.isEmpty()) {
+            QByteArray user_name = qgetenv("USER");
+            if (user_name.isEmpty()) {
+                user_name = qgetenv("USERNAME");
+            }
+            if (user_name.isEmpty()) {
+                name = QStringLiteral("Мудрый игрок");
+            }
+            else {
+                name = QString::fromUtf8(user_name);
+            }
+        }
+        bool ok;
+        name = QInputDialog::getText(this, QStringLiteral("Поздравляем!"), str_time +
+            QStringLiteral("\r\nС этим результатом Вы достойны быть увековеченны в таблице рекордов!"
+                           "\r\nПожалуйста, введите Ваше имя:"), QLineEdit::Normal, name, &ok);
+        if (!ok) {
+            return;
+        }
+        settings.setValue(key_user_name, name);
+        Hiscores::addHiScore(field_size, name, msecs_passed, clicks);
+        QTimer::singleShot(0, this, &MainWindow::on_action_hiscores);
+    }
+    else {
+        QMessageBox::information(this, QStringLiteral("Поздравляем!"), str_time +
+            QStringLiteral("\r\nК сожалению, этого этого результата не достаточно, "
+                           "чтобы оставить о себе память в таблице рекордов."));
+    }
 }
 
 void MainWindow::on_action_hiscores()
 {
-    Hiscores(this).exec();
+    Hiscores(this, game_field_->gameFieldSize()).exec();
 }
 
