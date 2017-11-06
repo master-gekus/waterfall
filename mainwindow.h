@@ -28,6 +28,9 @@ private:
     QAction **field_size_actions_;
     QActionGroup *field_size_group_;
 
+private:
+    void closeEvent(QCloseEvent *event) override;
+
 private slots:
     void on_action_about();
     void on_action_field_size();

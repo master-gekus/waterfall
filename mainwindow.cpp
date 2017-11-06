@@ -91,6 +91,8 @@ QIcon MainWindow::main_icon_;
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent)
 {
+    QSettings settings;
+
     QDir folder(QStringLiteral(":/res/mainicon"));
     for(const QString& file_name : folder.entryList())
         main_icon_.addFile(folder.filePath(file_name));
@@ -110,6 +112,7 @@ MainWindow::MainWindow(QWidget *parent) :
 
     field_size_actions_ = new QAction*[MAX_FIELD_SIZE - MIN_FIELD_SIZE + 1];
     field_size_group_ = new QActionGroup(this);
+    game_field_->setGameFieldSize(settings.value(QStringLiteral("Field Size")).toInt());
     int cur_field_size = game_field_->gameFieldSize();
     QMenu *menuFieldSize = new QMenu(QStringLiteral("Размер поля"), this);
     for (int i = MIN_FIELD_SIZE; i <= MAX_FIELD_SIZE; ++i)
@@ -148,6 +151,8 @@ MainWindow::MainWindow(QWidget *parent) :
     menuBar->addAction(menuHelp->menuAction());
     setMenuBar(menuBar);
 
+    restoreGeometry(settings.value(QStringLiteral("Main Window Geometry")).toByteArray());
+
     connect(actionQuit, SIGNAL(triggered(bool)), SLOT(close()));
     connect(actionAbout, SIGNAL(triggered(bool)), SLOT(on_action_about()));
     connect(actionGameNew, SIGNAL(triggered(bool)), SLOT(on_action_game_new()));
@@ -158,6 +163,15 @@ MainWindow::MainWindow(QWidget *parent) :
 
 MainWindow::~MainWindow()
 {
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    QSettings settings;
+    settings.setValue(QStringLiteral("Field Size"), game_field_->gameFieldSize());
+    settings.setValue(QStringLiteral("Main Window Geometry"), saveGeometry());
+
+    QMainWindow::closeEvent(event);
 }
 
 void MainWindow::on_action_about()
