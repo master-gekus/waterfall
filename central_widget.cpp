@@ -166,6 +166,10 @@ namespace
             animate_timer_.setInterval(50);
             animate_timer_.setTimerType(Qt::PreciseTimer);
             connect(&animate_timer_, &QTimer::timeout, this, &CentralLayout::on_animate_timer, Qt::QueuedConnection);
+
+            gameplay_timer_.setSingleShot(false);
+            gameplay_timer_.setInterval(1000);
+            connect(&gameplay_timer_, &QTimer::timeout, this, &CentralLayout::update_game_stat, Qt::QueuedConnection);
         }
 
     public:
@@ -174,8 +178,20 @@ namespace
         QLineEdit *edit_time_, *edit_clicks_;
         QPushButton *btn_new_game_;
         FieldButton* btn_field_[MAX_FIELD_SIZE * MAX_FIELD_SIZE];
-        QTimer animate_timer_;
+        QTimer animate_timer_, gameplay_timer_;
         CentralWidget::State state_ = CentralWidget::Shadow;
+        quint64 time_start_ = 0;
+        quint32 clicks_ = 0;
+
+    private:
+        void update_game_stat()
+        {
+            edit_clicks_->setText(QString::number(clicks_));
+            quint64 delta = (QDateTime::currentMSecsSinceEpoch() - time_start_ + 500) / 1000;
+            edit_time_->setText(QStringLiteral("%1:%2:%3").arg(delta / 3600)
+                                .arg((delta / 60) % 60, 2, 10, QChar('0'))
+                                .arg(delta % 60, 2, 10, QChar('0')));
+        }
 
     public:
         void startNewGame()
@@ -225,6 +241,10 @@ namespace
                 btn_field_[i]->setIconByState();
             }
             state_ = CentralWidget::GamePlayWait;
+            time_start_ = QDateTime::currentMSecsSinceEpoch();
+            clicks_ = 0;
+            gameplay_timer_.start();
+            update_game_stat();
         }
 
     private:
@@ -310,6 +330,9 @@ namespace
             btn->startAnimate();
             state_ = CentralWidget::GamePlayAnimation;
             animate_timer_.start();
+
+            clicks_++;
+            update_game_stat();
         }
 
         void on_animate_timer()
@@ -361,8 +384,11 @@ namespace
                 {
                     CentralWidget *parent = dynamic_cast<CentralWidget*>(parentWidget());
                     Q_ASSERT(parent);
+
+                    gameplay_timer_.stop();
+                    update_game_stat();
                     emit
-                        parent->gameFinished(0, 0);
+                        parent->gameFinished(QDateTime::currentMSecsSinceEpoch() - time_start_, clicks_);
                 }
             }
         }

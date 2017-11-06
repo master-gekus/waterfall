@@ -170,8 +170,8 @@ void MainWindow::on_action_game_new()
 
 void MainWindow::on_game_finished(quint64 msecs_passed, quint32 clicks)
 {
-    Q_UNUSED(msecs_passed);
-    Q_UNUSED(clicks);
-    QMessageBox::information(this, QStringLiteral("Поздравляем!"), QStringLiteral("Вы победили!"));
+    QMessageBox::information(this, QStringLiteral("Поздравляем!"),
+                             QStringLiteral("Вы успешно решили головоломку за %1 миллисекунд и %2 кликов!")
+                             .arg(msecs_passed).arg(clicks));
 }
 
